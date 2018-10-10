@@ -98,75 +98,37 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
 
     SU2_MESH_IO::SU2Keyword type;
     vtkIdType v[8];
-    int64_t v0,v1,v2,v3,v4,v5,v6,v7;
-    //LINE = 3,
-    //TRIANGLE = 5,
-    //QUADRILATERAL = 9,
-    //TETRAHEDRON = 10,
-    //HEXAHEDRON = 12,
-    //PRISM = 13,
-    //PYRAMID = 14
     for (int64_t i=0; i < numElements; i++)
     {
         type = SU2_MESH_IO::get_element_type(mesh);
         switch(type)
         {
             case SU2_MESH_IO::SU2Keyword::LINE:
-                //SU2_MESH_IO::get_line(mesh,type,v[0],v[1],rt); 
-                //output->InsertNextCell(VTK_LINE,2,v);
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],rt); 
+                output->InsertNextCell(VTK_LINE,2,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::TRIANGLE:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],rt); 
                 output->InsertNextCell(VTK_TRIANGLE,3,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::QUADRILATERAL:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,v3,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
-                v[3] = v3;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],rt); 
                 output->InsertNextCell(VTK_QUAD,4,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::TETRAHEDRON:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,v3,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
-                v[3] = v3;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],rt); 
                 output->InsertNextCell(VTK_TETRA,4,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::PRISM:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,v3,v4,v5,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
-                v[3] = v3;
-                v[4] = v4;
-                v[5] = v5;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],v[5],rt); 
                 output->InsertNextCell(VTK_WEDGE,6,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::PYRAMID:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,v3,v4,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
-                v[3] = v3;
-                v[4] = v4;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],rt); 
                 output->InsertNextCell(VTK_PYRAMID,6,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::HEXAHEDRON:
-                SU2_MESH_IO::get_line(mesh,type,v0,v1,v2,v3,v4,v5,v6,v7,rt); 
-                v[0] = v0;
-                v[1] = v1;
-                v[2] = v2;
-                v[3] = v3;
-                v[4] = v4;
-                v[5] = v5;
-                v[6] = v6;
-                v[7] = v7;
+                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],rt); 
                 output->InsertNextCell(VTK_HEXAHEDRON,8,v);
                 break;
             default:
