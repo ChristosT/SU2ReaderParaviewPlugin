@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <functional>
+#include <cassert>
 
 namespace SU2_MESH_IO
 {
@@ -110,14 +111,24 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
 
 
 //overload for points
-void get_line(SU2_mesh& mesh, double& x, double& y, double& z, int64_t& index)
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z, int64_t& index)
 {
+    assert(type == SU2Keyword::POINT3D && " keyword should be POINT");
     mesh.file >> x >> y >> z >> index;
 }
 // 2D points
-void get_line(SU2_mesh& mesh, double& x, double& y, int64_t& index)
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, int64_t& index)
 {
+    assert(type == SU2Keyword::POINT2D &&  " keyword should be POINT");
     mesh.file >> x >> y >> index;
+}
+
+SU2Keyword get_element_type(SU2_mesh& mesh)
+{
+    unsigned int c;
+    mesh.file >> c;
+    SU2Keyword type = static_cast<SU2Keyword>(c);
+    return type;
 }
 
 };

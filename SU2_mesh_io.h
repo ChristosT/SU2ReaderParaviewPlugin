@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <functional>
+#include <tuple>
 namespace SU2_MESH_IO
 {
 
@@ -13,8 +14,9 @@ enum SU2Keyword
     NELEM,
     NPOIN,
     NMARK,
-    POINT,
     NumKw,
+    POINT2D,
+    POINT3D,
     LINE = 3,
     TRIANGLE = 5,
     QUADRILATERAL = 9,
@@ -42,9 +44,11 @@ bool open_mesh(const char* filename, enum file_mode fmode, SU2_mesh& mesh);
 int64_t stat_kwd(SU2_mesh& mesh, int kwd);
 
 // 3D points
-void get_line(SU2_mesh& mesh, double& x, double& y, double& z, int64_t& index);
-// 2D points
-void get_line(SU2_mesh& mesh, double& x, double& y, int64_t& index);
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z, int64_t& index);
+// 2D point
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, int64_t& index);
+// read typoe of next element
+SU2Keyword get_element_type(SU2_mesh& mesh);
 
 // This is a template used to help us check that all arguments of the variadic 
 // function are the same. It is evaluated recursively at compile time
@@ -66,20 +70,23 @@ template <typename ... Types>
 struct template_all<std::true_type, Types...> : template_all<Types...>::type {};
 
 template<typename... Args>
-void get_line(SU2_mesh& mesh, SU2Keyword& type, Args&... arguments)
+void get_line(SU2_mesh& mesh, SU2Keyword type, Args&... arguments)
 {
-    static_assert( template_all< typename std::is_same<Args,int64_t>::type... >::value,
-                   "all arguments should be of type int64_t");
+//    static_assert( template_all< typename std::is_same<Args,int64_t>::type... >::value,
+//                   "all arguments should be of type int64_t");
 
-    unsigned int c;
-    mesh.file >> c;
-    type = static_cast<SU2Keyword>(c);
-    
-    std::reference_wrapper<int64_t> vals[] = {arguments...};
-    for( auto& i : vals)
+    //TODO assert type matches number of elements
+    using T = typename std::tuple_element<0, std::tuple<Args...> >::type;
+
+    //std::initializer_list <std::reference_wrapper<mA>> vals = {arguments...};
+    std::reference_wrapper<T> vals[] = {arguments...};
+    //for(auto i : vals)
+    for(size_t i  = 0 ; i < sizeof...(arguments); i++)
     {
-        mesh.file >> i.get();
+        //mesh.file >> i.get();
+        mesh.file >> vals[i].get();
     }
 }
 };
+
 #endif /* SU2_MESH_IO_H */

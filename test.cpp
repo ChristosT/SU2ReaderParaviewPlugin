@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     int64_t ref;
     for(int j = 0 ; j < k ; j++)
     {
-        SU2_MESH_IO::get_line(mesh,x,y,ref);
+        SU2_MESH_IO::get_line(mesh,SU2_MESH_IO::POINT2D,x,y,ref);
         std::cout << x << " " << y << " "  << ref << std::endl;
     }
     
@@ -24,6 +24,7 @@ int main(int argc, char** argv)
     for(int j = 0 ; j < k ; j++)
     {
         //get_line(mesh,{a,b,c,ref});
+        type = SU2_MESH_IO::get_element_type(mesh);
         SU2_MESH_IO::get_line(mesh,type,a,b,c,ref);
         std::cout << type << a << " " << b << " " << c <<" "  << ref << std::endl;
     }
