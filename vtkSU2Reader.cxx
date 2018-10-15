@@ -8,11 +8,15 @@
 #include "vtkDoubleArray.h"
 #include "vtkSmartPointer.h"
 
-#include "SU2_mesh_io.h"
 
 #include "vtkCellType.h"
 #include "vtkCellData.h"
-#include <vtkTypeInt64Array.h>
+#include "vtkStringArray.h"
+
+#include "SU2_mesh_io.h"
+
+#include<vector>
+#include<string>
 
 vtkStandardNewMacro(vtkSU2Reader);
 
@@ -93,13 +97,31 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
     output->SetPoints(pts);
     
     // Read elements
-    const int64_t numElements = SU2_MESH_IO::stat_kwd(mesh,SU2_MESH_IO::NELEM);
-    output->Allocate(numElements);
+
+    // volume elements
+    int64_t totalNumElements = SU2_MESH_IO::stat_kwd(mesh,SU2_MESH_IO::NELEM);
+
+    std::vector<std::string> tags = SU2_MESH_IO::get_marker_tags(mesh);
+    for(const std::string& tag : tags)
+    {
+       totalNumElements += SU2_MESH_IO::stat_kwd(mesh,tag);
+    }
+
+
+    output->Allocate(totalNumElements);
+   
+    // Create a struct to save boundary information
+    // Due to vtk restrictions? we have to save a value for every element
+    vtkSmartPointer<vtkStringArray> markers = vtkSmartPointer<vtkStringArray>::New();
+    markers->SetNumberOfComponents(1);
+    markers->SetNumberOfTuples(totalNumElements);
+    markers->SetName("marker");
 
     SU2_MESH_IO::SU2Keyword type;
     vtkIdType v[8];
     uint64_t v64[8];
-    for (int64_t i=0; i < numElements; i++)
+    int64_t numElementsVol = SU2_MESH_IO::stat_kwd(mesh,SU2_MESH_IO::NELEM);
+    for (int64_t i=0; i < numElementsVol; i++)
     {
         type = SU2_MESH_IO::get_element_type(mesh);
         switch(type)
@@ -140,12 +162,51 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
                 output->InsertNextCell(VTK_HEXAHEDRON,8,v);
                 break;
             default:
-                vtkWarningMacro(<<"Unknown element type");
+                vtkErrorMacro(<<"Unknown element type");
 
         }
+        markers->SetValue(i,"");
     }
 
+    //Boundary Data
+    // to visualize in paraview extract boundary elements (NOT BOUNDARY from filters)
+    // and follow the steps at https://blog.kitware.com/new-in-paraview-coloring-by-string-arrays/
+    int64_t mindex = numElementsVol;
+    for(const std::string& tag : tags)
+    {
+        int64_t numElementsBdry = SU2_MESH_IO::stat_kwd(mesh,tag);
+        for (int64_t i=0; i < numElementsBdry; i++)
+        {
+            type = SU2_MESH_IO::get_element_type(mesh);
+            switch(type)
+            {
+                case SU2_MESH_IO::SU2Keyword::LINE:
+                    SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1]); 
+                    std::copy(v64,v64+2,v);
+                    output->InsertNextCell(VTK_LINE,2,v);
+                    break;
+                case SU2_MESH_IO::SU2Keyword::TRIANGLE:
+                    SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2]); 
+                    std::copy(v64,v64+3,v);
+                    output->InsertNextCell(VTK_TRIANGLE,3,v);
+                    break;
+                case SU2_MESH_IO::SU2Keyword::QUADRILATERAL:
+                    SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3]); 
+                    std::copy(v64,v64+4,v);
+                    output->InsertNextCell(VTK_QUAD,4,v);
+                    break;
+                default:
+                    vtkErrorMacro(<<"Unknown element type for Boundary conditions");
 
+            }
+            markers->SetValue(mindex,tag);
+            mindex++;
+        }
+    }
+        
+
+
+    output->GetCellData()->AddArray(markers);
     output->Squeeze();
 
     return 1;
