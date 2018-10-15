@@ -48,36 +48,47 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd);
  */
 SU2Keyword get_element_type(SU2_mesh& mesh);
 
+    
+template<typename T, typename... Args>
+void get_line(SU2_mesh& mesh, SU2Keyword type, T& arg, Args&... arguments);
+
 /**
  * Read next 3D point
  */
+template <>
 void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z);
 
 /**
  * Read next 2D point
  */
+template <>
 void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y);
+
 
 /** 
  * Read next element connectivity
  */
+//LINE
+extern template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b);
 
-// base case for compile-time recursion
-inline void get_line(SU2_mesh& mesh, SU2Keyword type) {};
+// TRIANGLE
+extern template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c);
 
-template<typename T, typename... Args>
-void get_line(SU2_mesh& mesh, SU2Keyword type, T& arg, Args&... arguments)
-{
-    static_assert( std::is_integral<T>::value, 
-                     "all arguments should be of integral type");
+// QUADRILATERAL/ TETRAHEDRON
+extern template void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d);
 
-    //TODO assert type matches number of elements
+// PYRAMID
+extern template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e);
 
-    mesh.file >> arg;
+// PRISM 
+extern template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e, uint64_t& f);
 
-    get_line(mesh,type,arguments...);
-}
-
+// HEXAHEDRON
+extern template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e, uint64_t& f, uint64_t& g, uint64_t& h);
 };
-
 #endif /* SU2_MESH_IO_H */

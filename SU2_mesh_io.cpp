@@ -104,7 +104,6 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
         std::cerr<< "Wrong kwd value";
         return -1;
     }
-    int64_t pos = mesh.KwLocations[kwd];
 
     // Go to the position of kwd
     mesh.file.seekg( mesh.KwLocations[kwd] );
@@ -128,7 +127,49 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
 
 
 
-//overload for points
+// base case for compile-time recursion
+inline void get_line(SU2_mesh& mesh, SU2Keyword type) 
+{
+    std::string tmp;
+    std::getline(mesh.file,tmp); // disregard rest of line,
+
+};
+
+template<typename T, typename... Args>
+void get_line(SU2_mesh& mesh, SU2Keyword type, T& arg, Args&... arguments)
+{
+    static_assert( std::is_integral<T>::value, 
+                     "all arguments should be of type uint64_t");
+
+    //TODO assert type matches number of elements
+
+    mesh.file >> arg;
+
+    get_line(mesh,type,arguments...);
+}
+
+// Explicit instatiation for connectivity reading functions
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b);
+// TRIANGLE
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c);
+// QUADRILATERAL/ TETRAHEDRON
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d);
+// PYRAMID
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e);
+// PRISM 
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e, uint64_t& f);
+// HEXAHEDRON
+template
+void get_line(SU2_mesh& mesh, SU2Keyword type, uint64_t& a, uint64_t& b, uint64_t& c, uint64_t& d, uint64_t& e, uint64_t& f, uint64_t& g, uint64_t& h);
+
+
+// Specialization for reading point coordinates
+template <>
 void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z)
 {
     assert(type == SU2Keyword::POINT3D && " keyword should be POINT3D");
@@ -138,6 +179,7 @@ void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z)
     stream >> x >> y >> z; 
 }
 // 2D points
+template <>
 void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y)
 {
     assert(type == SU2Keyword::POINT2D &&  " keyword should be POINT2D");
@@ -146,6 +188,7 @@ void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y)
 
     stream >> x >> y; 
 }
+
 
 SU2Keyword get_element_type(SU2_mesh& mesh)
 {
