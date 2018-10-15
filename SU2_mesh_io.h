@@ -51,12 +51,12 @@ SU2Keyword get_element_type(SU2_mesh& mesh);
 /**
  * Read next 3D point
  */
-void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z, int64_t& index);
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z);
 
 /**
  * Read next 2D point
  */
-void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, int64_t& index);
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y);
 
 /** 
  * Read next element connectivity

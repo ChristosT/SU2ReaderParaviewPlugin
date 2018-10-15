@@ -3,11 +3,12 @@
 #include <cstring>
 #include <iostream>
 #include <functional>
+#include <sstream>
 #include <cassert>
+#define DPRINT(x) std::cout <<__func__ << " : " << #x << " ---> "<< x << std::endl;
 
 namespace SU2_MESH_IO
 {
-#define DPRINT(x) std::cout << #x << " ---> "<< x << std::endl;
 const int MAX_STRING_SIZE = 1024;
 
 const char KeywordNames[NumKw][MAX_STRING_SIZE] =
@@ -18,7 +19,21 @@ const char KeywordNames[NumKw][MAX_STRING_SIZE] =
     "NMARK"
 };
 
-
+namespace detail
+{
+    // use strinstream instead of the string that std::getline returns
+    // that way we get split on whitespace without extra eford
+    static std::istringstream getline(std::fstream& file)
+    {
+        std::string line;
+        std::getline(file, line);
+        
+        std::istringstream stream(line);
+    
+        return stream;
+    }
+        
+}
 /*
  * Scan the whole file and find the locations of file keywords
  */
@@ -29,22 +44,26 @@ static bool find_keyword_locations(SU2_mesh& mesh)
 
     while(std::getline(mesh.file,line))
     {
-         // Check whether the line start by a character
-         if(isalpha(line[0]))
+         // Check whether the line starts by a character
+         // of if it is a comment
+         if(line.size() > 0 and (line[0] != '%') and (isalpha(line[0])) )
          {
              for(int i = 0 ; i <  NumKw; i++)
              {
                  int res = std::strncmp(line.c_str(),KeywordNames[i], std::min(line.size(),std::strlen(KeywordNames[i])));
                  if( res == 0 )
                  {
-                     //save beginning of line 
-                     mesh.KwLocations[i] = (std::uint64_t)mesh.file.tellg() - line.size();
+                     //save position of data size in a way that next read will give the number
+                     // of entities
+                     mesh.KwLocations[i] = (std::uint64_t)mesh.file.tellg() - line.size() + std::strlen(KeywordNames[i]);
+
+
                      break;
                 }
             }
         }
     }
-    // clear failbit,a llow for more searches
+    // clear failbit, allow for more searches
     mesh.file.clear();
     return true;
 }
@@ -87,16 +106,15 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
     }
     int64_t pos = mesh.KwLocations[kwd];
 
-    // Go to the beginning of the line of kwd
+    // Go to the position of kwd
     mesh.file.seekg( mesh.KwLocations[kwd] );
-    // skip keyword 
-    std::string tmp;
-    mesh.file >> tmp;
+    
+    std::istringstream stream = detail::getline(mesh.file);
 
     // read number of entities
     int64_t value;
-    mesh.file >> value;
-
+    stream >> value;
+    
     return value;
 }
 //void get_line(SU2_mesh& mesh, std::initializer_list< std::reference_wrapper<int64_t>> parameters)
@@ -111,21 +129,27 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
 
 
 //overload for points
-void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z, int64_t& index)
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z)
 {
-    assert(type == SU2Keyword::POINT3D && " keyword should be POINT");
-    mesh.file >> x >> y >> z >> index;
+    assert(type == SU2Keyword::POINT3D && " keyword should be POINT3D");
+    
+    std::istringstream stream = detail::getline(mesh.file);
+
+    stream >> x >> y >> z; 
 }
 // 2D points
-void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, int64_t& index)
+void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y)
 {
-    assert(type == SU2Keyword::POINT2D &&  " keyword should be POINT");
-    mesh.file >> x >> y >> index;
+    assert(type == SU2Keyword::POINT2D &&  " keyword should be POINT2D");
+
+    std::istringstream stream = detail::getline(mesh.file);
+
+    stream >> x >> y; 
 }
 
 SU2Keyword get_element_type(SU2_mesh& mesh)
 {
-    unsigned int c;
+    int c;
     mesh.file >> c;
     SU2Keyword type = static_cast<SU2Keyword>(c);
     return type;
