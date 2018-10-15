@@ -75,7 +75,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
     {
         for(int64_t i=0;i<numVerts;i++)
         {
-            SU2_MESH_IO::get_line(mesh, SU2_MESH_IO::POINT3D, p[0], p[1], p[2],rt);
+            SU2_MESH_IO::get_line(mesh, SU2_MESH_IO::POINT3D, p[0], p[1], p[2]);
             vtkDebugMacro(<<p[0] << " " <<p[1] << " " << p[2]);
             pts->SetPoint(i,p);
         }
@@ -85,7 +85,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
         p[2] = 0.0;
         for(int64_t i=0;i<numVerts;i++)
         {
-            SU2_MESH_IO::get_line(mesh, SU2_MESH_IO::POINT2D, p[0], p[1],rt);
+            SU2_MESH_IO::get_line(mesh, SU2_MESH_IO::POINT2D, p[0], p[1]);
             vtkDebugMacro(<<p[0] << " " <<p[1] << " " << p[2]);
             pts->SetPoint(i,p);
         }
@@ -98,37 +98,45 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
 
     SU2_MESH_IO::SU2Keyword type;
     vtkIdType v[8];
+    uint64_t v64[8];
     for (int64_t i=0; i < numElements; i++)
     {
         type = SU2_MESH_IO::get_element_type(mesh);
         switch(type)
         {
             case SU2_MESH_IO::SU2Keyword::LINE:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1]); 
+                std::copy(v64,v64+2,v);
                 output->InsertNextCell(VTK_LINE,2,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::TRIANGLE:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2]); 
+                std::copy(v64,v64+3,v);
                 output->InsertNextCell(VTK_TRIANGLE,3,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::QUADRILATERAL:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3]); 
+                std::copy(v64,v64+4,v);
                 output->InsertNextCell(VTK_QUAD,4,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::TETRAHEDRON:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3]); 
+                std::copy(v64,v64+4,v);
                 output->InsertNextCell(VTK_TETRA,4,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::PRISM:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],v[5],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3],v64[4],v64[5]); 
+                std::copy(v64,v64+6,v);
                 output->InsertNextCell(VTK_WEDGE,6,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::PYRAMID:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],rt); 
-                output->InsertNextCell(VTK_PYRAMID,6,v);
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3],v64[4]); 
+                std::copy(v64,v64+5,v);
+                output->InsertNextCell(VTK_PYRAMID,5,v);
                 break;
             case SU2_MESH_IO::SU2Keyword::HEXAHEDRON:
-                SU2_MESH_IO::get_line(mesh,type,v[0],v[1],v[2],v[3],v[4],v[5],v[6],v[7],rt); 
+                SU2_MESH_IO::get_line(mesh,type,v64[0],v64[1],v64[2],v64[3],v64[4],v64[5],v64[6],v64[7]); 
+                std::copy(v64,v64+8,v);
                 output->InsertNextCell(VTK_HEXAHEDRON,8,v);
                 break;
             default:

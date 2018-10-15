@@ -21,7 +21,6 @@ int main(int argc, char** argv)
     }
     std::cout << "number of points " << k << std::endl;
     double x,y,z;
-    int64_t ref;
     for(int j = 0 ; j < k ; j++)
     {
         SU2_MESH_IO::get_line(mesh,SU2_MESH_IO::POINT2D,x,y);
@@ -35,13 +34,13 @@ int main(int argc, char** argv)
         return 1;
     }
     SU2_MESH_IO::SU2Keyword type;
-    int64_t a,b,c;
+    uint64_t a,b,c,d;
     for(int j = 0 ; j < k ; j++)
     {
         //get_line(mesh,{a,b,c,ref});
         type = SU2_MESH_IO::get_element_type(mesh);
-        SU2_MESH_IO::get_line(mesh,type,a,b,c,ref);
-        std::cout << type << " " << a << " " << b << " " << c <<" "  << ref << std::endl;
+        SU2_MESH_IO::get_line(mesh,type,a,b,c,d);
+        std::cout << type << " " << a << " " << b << " " << c <<" "  << d << std::endl;
     }
     return 0;
 }
