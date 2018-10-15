@@ -42,5 +42,22 @@ int main(int argc, char** argv)
         SU2_MESH_IO::get_line(mesh,type,a,b,c,d);
         std::cout << type << " " << a << " " << b << " " << c <<" "  << d << std::endl;
     }
+
+    std::vector< std::string> labels = SU2_MESH_IO::get_marker_tags(mesh);
+
+    for(std::string& key : labels)
+    {
+        k = SU2_MESH_IO::stat_kwd(mesh,key);
+        std::cout << "Label " << key << " elements : " << k << std::endl;
+        
+        for(int j = 0 ; j < k ; j++)
+        {
+            type = SU2_MESH_IO::get_element_type(mesh);
+            SU2_MESH_IO::get_line(mesh,type,a,b);
+            std::cout << type << " " << a << " " << b << std::endl;
+        }
+    }
+
+
     return 0;
 }

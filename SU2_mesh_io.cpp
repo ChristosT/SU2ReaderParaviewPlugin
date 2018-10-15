@@ -32,6 +32,13 @@ namespace detail
     
         return stream;
     }
+
+    static void disregard_rest_of_line(std::fstream& file)
+    {
+        std::string tmp;
+        std::getline(file,tmp); // disregard rest of line,
+        (void) tmp;
+    }
         
 }
 /*
@@ -61,7 +68,29 @@ static bool find_keyword_locations(SU2_mesh& mesh)
                      break;
                 }
             }
-        }
+            // markers treatment
+            const char* key = "MARKER_TAG";
+            int res = std::strncmp(line.c_str(),key, std::min(line.size(),std::strlen(key)));
+            if( res == 0)
+            {
+                // split in spaces
+                std::istringstream stream(line);
+                
+                std::string tag,tmp;
+                
+                stream >> tmp; // MARKER_TAG;
+                stream >> tag; // actual tag
+                //DPRINT(tag);
+
+                std::getline(mesh.file,tmp); //next line
+                DPRINT(tmp);
+
+                mesh.markers[tag] = (uint64_t)mesh.file.tellg() - tmp.size() + std::strlen("MARKER_ELEMS");
+
+
+
+            }
+         }
     }
     // clear failbit, allow for more searches
     mesh.file.clear();
@@ -113,7 +142,30 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
     // read number of entities
     int64_t value;
     stream >> value;
+
+    return value;
+}
+int64_t stat_kwd(SU2_mesh& mesh, const std::string& marker_name)
+{
+    if( marker_name.empty())
+    {
+        std::cerr<< "empty marker name" <<std::endl;
+        return -1;
+    }
+    else if ( mesh.markers.find(marker_name) == mesh.markers.end())
+    {
+        std::cerr<< "non-existent marker" <<std::endl;
+        return -2;
+    }
+    // Go to the position of kwd
+    mesh.file.seekg( mesh.markers[marker_name] );
     
+    std::istringstream stream = detail::getline(mesh.file);
+
+    // read number of entities
+    int64_t value;
+    stream >> value;
+
     return value;
 }
 //void get_line(SU2_mesh& mesh, std::initializer_list< std::reference_wrapper<int64_t>> parameters)
@@ -130,8 +182,7 @@ int64_t stat_kwd(SU2_mesh& mesh, int kwd)
 // base case for compile-time recursion
 inline void get_line(SU2_mesh& mesh, SU2Keyword type) 
 {
-    std::string tmp;
-    std::getline(mesh.file,tmp); // disregard rest of line,
+    detail::disregard_rest_of_line(mesh.file);
 
 };
 
@@ -197,5 +248,14 @@ SU2Keyword get_element_type(SU2_mesh& mesh)
     SU2Keyword type = static_cast<SU2Keyword>(c);
     return type;
 }
+
+std::vector<std::string> get_marker_tags(SU2_mesh& mesh)
+{
+    std::vector<std::string> res;
+    res.reserve(mesh.markers.size());
+    for(auto& item : mesh.markers) res.push_back(item.first);
+    return res;
+}
+
 
 };
