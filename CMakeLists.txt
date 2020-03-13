@@ -1,28 +1,40 @@
-# create a plugin that adds a reader to the ParaView GUI
-# it is added in the file dialog when doing open
-
-cmake_minimum_required(VERSION 2.8)
-set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
+cmake_minimum_required(VERSION 3.8)
+project(SU2ReaderParaview)
 
 find_package(ParaView REQUIRED)
-include(${PARAVIEW_USE_FILE})
-set(SU2_READER_LIB_NAME vtkSU2Reader)
-ADD_PARAVIEW_PLUGIN(${SU2_READER_LIB_NAME} "1.0"
-  SERVER_MANAGER_XML vtkSU2Reader.xml
-  SERVER_MANAGER_SOURCES vtkSU2Reader.cxx
-  REQUIRED_ON_SERVER)
 
-###    LIBMESH Library   ###
-find_path(SU2_MESH_IO_INCLUDE_DIR SU2_mesh_io.h HINTS .) #"${HINT_PATH}/include/")
-if(NOT SU2_MESH_IO_INCLUDE_DIR)
-    message(FATAL_ERROR "Could not find SU2_mesh_io.h . Please set SU2_MESH_IO_INCLUDE_DIR")
-endif()
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-rpath=$ORIGIN")
 
-include_directories( ${SU2_MESH_IO_INCLUDE_DIR})
-find_library(SU2_MESH_IO_LIBRARY SU2_mesh_io HINT .) #"${HINT_PATH}/lib")
-if(NOT SU2_MESH_IO_LIBRARY)
-    message(FATAL_ERROR "Could not find SU2_mesh_io lib.  Please set SU2_MESH_IO_LIBRARY")
-endif()
+set(CMAKE_INSTALL_RPATH $ORIGIN)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 
-target_link_libraries(${SU2_READER_LIB_NAME} PUBLIC ${SU2_MESH_IO_LIBRARY} ${VTK_LIBRARIES})
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+enable_testing()
+
+
+include(GNUInstallDirs)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}")
+
+set("_paraview_plugin_default_${CMAKE_PROJECT_NAME}" ON)
+paraview_plugin_scan(
+  PLUGIN_FILES      "${CMAKE_CURRENT_SOURCE_DIR}/Plugin/paraview.plugin"
+  PROVIDES_PLUGINS  plugins
+  REQUIRES_MODULES  required_modules)
+
+foreach (module IN LISTS required_modules)
+  if (NOT TARGET "${module}")
+    message(#FATAL_ERROR
+      "Skipping example ${CMAKE_PROJECT_NAME}: Missing required module: "
+      "${module}")
+    return ()
+  endif ()
+endforeach ()
+
+paraview_plugin_build(
+  RUNTIME_DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  LIBRARY_DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  LIBRARY_SUBDIRECTORY "${PARAVIEW_PLUGIN_SUBDIR}"
+  PLUGINS ${plugins})

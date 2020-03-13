@@ -9,7 +9,7 @@ class vtkSU2Reader : public vtkUnstructuredGridAlgorithm
 public:
   static vtkSU2Reader* New();
   vtkTypeMacro(vtkSU2Reader,vtkUnstructuredGridAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   vtkSetStringMacro(MeshFile);
 
@@ -17,13 +17,13 @@ public:
 
 protected:
   vtkSU2Reader();
-  ~vtkSU2Reader() VTK_OVERRIDE;
+  ~vtkSU2Reader() override;
 
-  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
+  int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
 private:
   char* MeshFile;
-  vtkSU2Reader(const vtkSU2Reader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkSU2Reader&) VTK_DELETE_FUNCTION;
+  vtkSU2Reader(const vtkSU2Reader&) = delete;
+  void operator=(const vtkSU2Reader&) = delete;
 };
 
 #endif
