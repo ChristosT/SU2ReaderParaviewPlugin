@@ -3,7 +3,7 @@ test: test.cpp SU2_mesh_io.cpp SU2_mesh_io.h
 	g++ ${CPP_FLAGS} test.cpp SU2_mesh_io.cpp -o test
 
 library:
-	g++ ${CPP_FLAGS} -c -fPIC SU2_mesh_io.cpp
+	g++ ${CPP_FLAGS} -c -fPIC SU2_mesh_io.cpp -std=c++11
 	ar rvs SU2_mesh_io.a SU2_mesh_io.o
 
 clean:
