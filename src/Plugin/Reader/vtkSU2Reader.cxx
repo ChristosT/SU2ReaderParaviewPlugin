@@ -13,7 +13,7 @@
 #include "vtkCellData.h"
 #include "vtkStringArray.h"
 
-#include "SU2_mesh_io.h"
+#include "vtkSU2ReaderInternal.h"
 
 #include<vector>
 #include<string>

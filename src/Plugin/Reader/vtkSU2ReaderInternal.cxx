@@ -1,4 +1,4 @@
-#include "SU2_mesh_io.h"
+#include "vtkSU2ReaderInternal.h"
 #include <string>
 #include <cstring>
 #include <iostream>
