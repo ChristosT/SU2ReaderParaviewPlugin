@@ -1,7 +1,7 @@
 # SU2 mesh reader plugin for Paraview
 
 
-Visualize meshes in the [su2 format]((https://su2code.github.io/docs_v7/Mesh-File) in [Paraview](https://www.paraview.org).
+Visualize meshes in the [su2 format](https://su2code.github.io/docs_v7/Mesh-File) in [Paraview](https://www.paraview.org).
 
 Tested using Paraview 5.6.0 & 5.8.0 on Linux ( Ubuntu 16.04) .
 
