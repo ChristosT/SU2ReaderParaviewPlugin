@@ -1,10 +1,12 @@
-#include "SU2_mesh_io.h"
+#include "vtkSU2ReaderInternal.h"
 #include <string>
 #include <cstring>
 #include <iostream>
 #include <functional>
 #include <sstream>
 #include <cassert>
+#include <array>
+#include <limits>
 #define DPRINT(x) std::cout <<__func__ << " : " << #x << " ---> "<< x << std::endl;
 
 namespace SU2_MESH_IO
@@ -18,6 +20,9 @@ const char KeywordNames[NumKw][MAX_STRING_SIZE] =
     "NPOIN",
     "NMARK"
 };
+
+// indexed by SU2Keyword element types
+static const std::array<int,SU2Keyword::NumTotal> ElementSize = { 0,2,3,2,0,3,0,0,0,4,4,0,8,6,5};
 
 namespace detail
 {
@@ -39,6 +44,8 @@ namespace detail
         std::getline(file,tmp); // disregard rest of line,
         (void) tmp;
     }
+
+    static const char space = ' ';
         
 }
 /*
@@ -102,8 +109,16 @@ bool open_mesh(const char* filename, enum file_mode fmode, SU2_mesh& mesh)
 
     if( fmode == file_mode::WRITE)
     {
-        std::cerr<< " NOT YET IMPLEMENTED " << std::endl;
-        return false;
+        mesh.fmode = fmode;
+        mesh.file.open(filename,std::ios::out);
+        
+        if( not mesh.file.is_open())
+        {
+            std::cerr<< " Could not open " << filename << std::endl;
+            return false;
+        }
+        mesh.file.setf(std::ios_base::scientific);
+        mesh.file.precision(std::numeric_limits< double > ::max_digits10);
     }
     else
     {
@@ -123,6 +138,42 @@ bool open_mesh(const char* filename, enum file_mode fmode, SU2_mesh& mesh)
     }
     return true;
 }
+
+void SU2_mesh::generate_element_type_counters() 
+{
+    // initialize map
+    std::array<SU2Keyword,7> types ={ LINE,  TRIANGLE,  QUADRILATERAL ,   TETRAHEDRON ,  HEXAHEDRON ,   PRISM ,  PYRAMID };
+    for(SU2Keyword type : types)
+        this->element_counters[type] = 0;
+
+    int64_t num = stat_kwd(*this,NELEM); // go to begining of elements section
+    for(int64_t i = 0 ; i < num ; i++)
+    {
+        this->element_counters.at(get_element_type(*this))++;
+        detail::disregard_rest_of_line(this->file);
+    }
+
+    for(const auto& item : this->markers)
+    {
+        int64_t num = stat_kwd(*this,item.first); // go to begining of marker
+        for(int64_t i = 0 ; i < num ; i++)
+        { 
+            this->element_counters.at(get_element_type(*this))++;
+            detail::disregard_rest_of_line(this->file);
+        }
+    }
+}
+
+
+
+
+
+
+void close_mesh(SU2_mesh& mesh)
+{
+    mesh.file.close();
+}
+
 /**
  * Read number entities under kwd and set position to this kwd
  */
@@ -168,23 +219,52 @@ int64_t stat_kwd(SU2_mesh& mesh, const std::string& marker_name)
 
     return value;
 }
-//void get_line(SU2_mesh& mesh, std::initializer_list< std::reference_wrapper<int64_t>> parameters)
-//{
-//    for( auto& i : parameters)
-//    {
-//        mesh.file >> i.get();
-//       DPRINT(i.get());
-//    }
-//}
-
-
-
-// base case for compile-time recursion
-inline void get_line(SU2_mesh& mesh, SU2Keyword type) 
+bool set_kwd(SU2_mesh& mesh, int kwd, int64_t k)
 {
-    detail::disregard_rest_of_line(mesh.file);
+    if ( kwd < 0 or kwd >=NumKw)
+    {
+        std::cerr<< "Wrong kwd value";
+        return false;
+    }
+    
+    mesh.file << KeywordNames[kwd] << "=" << detail::space << k << std::endl;
+    return true;
+}
+/**
+ * Set number of entities under marker and set position to newline after
+ */
+bool set_kwd(SU2_mesh& mesh, const std::string& marker_name,int64_t k)
+{
+    mesh.file << "MARKER_TAG=" << detail::space << marker_name << std::endl;
+    mesh.file << "MARKER_ELEMS=" << detail::space << k << std::endl;
+    return true;
+}
 
-};
+
+
+namespace detail
+{
+    // base case for compile-time recursion
+    inline void get_line_impl(SU2_mesh& mesh) 
+    {
+        detail::disregard_rest_of_line(mesh.file);
+
+    }
+
+    template<typename T, typename... Args>
+    void get_line_impl(SU2_mesh& mesh, T& arg, Args&... arguments)
+    {
+        static_assert( std::is_integral<T>::value, 
+                       "all arguments should be of type uint64_t");
+
+
+        mesh.file >> arg;
+
+        get_line_impl(mesh,arguments...);
+    }
+
+
+}
 
 template<typename T, typename... Args>
 void get_line(SU2_mesh& mesh, SU2Keyword type, T& arg, Args&... arguments)
@@ -192,11 +272,15 @@ void get_line(SU2_mesh& mesh, SU2Keyword type, T& arg, Args&... arguments)
     static_assert( std::is_integral<T>::value, 
                      "all arguments should be of type uint64_t");
 
-    //TODO assert type matches number of elements
+    if( sizeof...(arguments) + 1 != ElementSize.at(type))
+    {
+        std::cerr << "Wrong number of arguments" << std::endl;
+        std::cerr << "Expected :" << ElementSize.at(type) << std::endl;
+        std::cerr << "Got      :" << sizeof...(arguments) + 1  << std::endl;
+        std::abort();
+    }
 
-    mesh.file >> arg;
-
-    get_line(mesh,type,arguments...);
+    detail::get_line_impl(mesh,arg,arguments...);
 }
 
 // Explicit instatiation for connectivity reading functions
@@ -227,6 +311,7 @@ void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y, double& z)
     
     std::istringstream stream = detail::getline(mesh.file);
 
+
     stream >> x >> y >> z; 
 }
 // 2D points
@@ -241,6 +326,89 @@ void get_line(SU2_mesh& mesh, SU2Keyword type, double& x, double& y)
 }
 
 
+
+
+
+
+
+// base case for compile-time recursion
+inline void set_line_impl(SU2_mesh& mesh) 
+{
+    mesh.file << "\n";
+
+}
+
+
+template<typename T, typename... Args>
+void set_line_impl(SU2_mesh& mesh,T arg, Args... arguments)
+{
+    static_assert( std::is_integral<T>::value, 
+                     "all arguments should be of type uint64_t");
+
+
+    mesh.file << arg << detail::space ;
+
+    set_line_impl(mesh,arguments...);
+}
+
+template<typename T, typename... Args>
+void set_line(SU2_mesh& mesh, SU2Keyword type, T arg, Args... arguments)
+{
+    static_assert( std::is_integral<T>::value, 
+                     "all arguments should be of type uint64_t");
+
+    if( sizeof...(arguments) + 1 != ElementSize.at(type))
+    {
+        std::cerr << "Wrong number of arguments" << std::endl;
+        std::cerr << "Expected :" << ElementSize.at(type) << std::endl;
+        std::cerr << "Got      :" << sizeof...(arguments) + 1  << std::endl;
+        std::abort();
+    }
+
+    mesh.file << type << detail::space ;
+
+    set_line_impl(mesh,arg,arguments...);
+}
+
+// Explicit instatiation for connectivity reading functions
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b);
+// TRIANGLE
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b, uint64_t c);
+// QUADRILATERAL/ TETRAHEDRON
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b, uint64_t c, uint64_t d);
+// PYRAMID
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e);
+// PRISM 
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f);
+// HEXAHEDRON
+template
+void set_line(SU2_mesh& mesh, SU2Keyword type, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, uint64_t f, uint64_t g, uint64_t h);
+
+
+// Specialization for reading point coordinates
+template <>
+void set_line(SU2_mesh& mesh, SU2Keyword type, double x, double y, double z)
+{
+    assert(type == SU2Keyword::POINT3D && " keyword should be POINT3D");
+    
+    mesh.file.precision(std::numeric_limits< double > ::max_digits10);
+    mesh.file << x << detail::space << y << detail::space << z << std::endl;
+}
+// 2D points
+template <>
+void set_line(SU2_mesh& mesh, SU2Keyword type, double x, double y)
+{
+    assert(type == SU2Keyword::POINT2D &&  " keyword should be POINT2D");
+
+    mesh.file.precision(std::numeric_limits< double > ::max_digits10);
+    mesh.file << x << detail::space << y << detail::space << std::endl;
+}
+
 SU2Keyword get_element_type(SU2_mesh& mesh)
 {
     int c;
@@ -248,7 +416,10 @@ SU2Keyword get_element_type(SU2_mesh& mesh)
     SU2Keyword type = static_cast<SU2Keyword>(c);
     return type;
 }
-
+void set_element_type(SU2_mesh& mesh,SU2Keyword kwd)
+{
+    mesh.file << KeywordNames[kwd] << detail::space;
+}
 std::vector<std::string> get_marker_tags(SU2_mesh& mesh)
 {
     std::vector<std::string> res;
@@ -257,5 +428,4 @@ std::vector<std::string> get_marker_tags(SU2_mesh& mesh)
     return res;
 }
 
-
-};
+}

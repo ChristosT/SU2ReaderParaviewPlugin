@@ -1,0 +1,8 @@
+NAME
+  SU2ReaderParaview
+DESCRIPTION
+  Reader for visualization of SU2 type mesh files used by the SU2 solver
+REQUIRES_MODULES
+  ParaView::VTKExtensionsCore
+  VTK::CommonCore
+  VTK::CommonExecutionModel

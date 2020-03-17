@@ -13,7 +13,7 @@
 #include "vtkCellData.h"
 #include "vtkStringArray.h"
 
-#include "SU2_mesh_io.h"
+#include "vtkSU2ReaderInternal.h"
 
 #include<vector>
 #include<string>
@@ -50,6 +50,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
         return 0;
     }
 
+    vtkDebugMacro(<<"Try to open file");
     // open a SU2 file for reading
     SU2_MESH_IO::SU2_mesh mesh;
     bool success = SU2_MESH_IO::open_mesh(this->MeshFile,SU2_MESH_IO::file_mode::READ,mesh);
@@ -72,6 +73,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
     double p[3];
     int64_t rt; //reference , not in use in this plugin
 
+    vtkDebugMacro(<<"Read vertices");
     // Read the vertices
     //GmfGotoKwd(InpMsh, GmfVertices);
     int dim = mesh.dim;
@@ -95,6 +97,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
         }
     }
     output->SetPoints(pts);
+    vtkDebugMacro(<<"Done");
     
     // Read elements
 
@@ -207,6 +210,7 @@ int vtkSU2Reader::RequestData( vtkInformation *vtkNotUsed(request),
 
 
     output->GetCellData()->AddArray(markers);
+    //markers->Delete();
     output->Squeeze();
 
     return 1;
